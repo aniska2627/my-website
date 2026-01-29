@@ -377,3 +377,235 @@
 </body>
 
 </html>
+
+    <!-- CLIENTS -->
+    <section id="clients">
+        <div class="card">
+            <h2>Client Management</h2>
+            <input id="cname" placeholder="Client Name">
+            <input id="cemail" placeholder="Email">
+            <button class="action" onclick="addClient()">Save Client</button>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="clientTable"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- INVOICE -->
+    <section id="invoice">
+        <div class="card">
+            <h2>Create Invoice</h2>
+            <select id="invClient"></select>
+            <input id="item" placeholder="Item Name">
+            <input id="qty" placeholder="Quantity">
+            <input id="price" placeholder="Price">
+            <button class="secondary" onclick="addItem()">Add Item</button>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Qty</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody id="itemTable"></tbody>
+            </table>
+
+            <input id="gst" placeholder="GST %">
+            <button class="action" onclick="saveInvoice()">Save Invoice</button>
+        </div>
+    </section>
+
+    <!-- RECORDS -->
+    <section id="records">
+        <div class="card">
+            <h2>Invoice Records</h2>
+            <input placeholder="Search by Client" onkeyup="search(this.value)">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Client</th>
+                        <th>Amount</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="invoiceTable"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="about">
+        <div class="card">
+            <h2>About</h2>
+            <p>The Invoice Management System is a comprehensive web-based application designed to help businesses, freelancers, and students efficiently manage clients and generate invoices. It allows secure admin access, provides persistent data storage,
+                and features a professional dark-themed interface with a dynamic dashboard showing total clients, invoices, and revenue. Users can add and manage clients, create multi-item invoices with quantity, price, subtotal, GST, and grand total
+                calculations, view detailed invoice records, and print professional invoices directly from the system. This intuitive and fully functional solution streamlines financial management without requiring a backend server, making it ideal for
+                small-scale business operations, educational projects, or portfolio demonstrations, and it can be further enhanced with features such as PDF export or voice invoice reading.</p>
+        </div>
+    </section>
+
+    <script>
+        // Global Data
+        let clients = JSON.parse(localStorage.getItem("clients") || "[]")
+        let invoices = JSON.parse(localStorage.getItem("invoices") || "[]")
+        let items = []
+
+        // LOGIN FUNCTION
+        function login() {
+            if (user.value === "admin" && pass.value === "admin123") {
+                document.getElementById("loginPage").style.display = "none";
+                document.getElementById("menu").style.display = "flex";
+                show("dash");
+            } else {
+                loginMsg.innerText = "Invalid username or password";
+            }
+        }
+
+        // PAGE NAVIGATION
+        function show(id) {
+            document.querySelectorAll("section").forEach(s => s.classList.remove("active"))
+            document.getElementById(id).classList.add("active")
+            loadAll()
+        }
+
+        // CLIENT CRUD
+        function addClient() {
+            if (cname.value == "" || cemail.value == "") {
+                alert("Fill all fields");
+                return;
+            }
+            clients.push({
+                name: cname.value,
+                email: cemail.value
+            })
+            localStorage.setItem("clients", JSON.stringify(clients))
+            cname.value = cemail.value = ""
+            loadClients()
+        }
+
+        function loadClients() {
+            clientTable.innerHTML = ""
+            invClient.innerHTML = ""
+            clients.forEach((c, i) => {
+                clientTable.innerHTML += `<tr>
+        <td>${c.name}</td><td>${c.email}</td>
+        <td><button class="delete" onclick="delClient(${i})">Delete</button></td>
+        </tr>`
+                invClient.innerHTML += `<option>${c.name}</option>`
+            })
+        }
+
+        function delClient(i) {
+            clients.splice(i, 1)
+            localStorage.setItem("clients", JSON.stringify(clients))
+            loadClients()
+        }
+
+        // INVOICE CRUD
+        function addItem() {
+            if (item.value == "" || qty.value == "" || price.value == "") {
+                alert("Fill item fields");
+                return;
+            }
+            let t = qty.value * price.value
+            items.push({
+                item: item.value,
+                qty: qty.value,
+                price: price.value,
+                total: t
+            })
+            item.value = qty.value = price.value = ""
+            renderItems()
+        }
+
+        function renderItems() {
+            itemTable.innerHTML = ""
+            items.forEach(i => {
+                itemTable.innerHTML += `<tr>
+        <td>${i.item}</td><td>${i.qty}</td><td>${i.price}</td><td>${i.total}</td>
+        </tr>`
+            })
+        }
+
+        function saveInvoice() {
+            if (items.length == 0) {
+                alert("Add items first");
+                return;
+            }
+            let sum = items.reduce((a, b) => a + b.total, 0)
+            let gstVal = parseFloat(gst.value) || 0
+            let g = sum * (gstVal / 100)
+            let total = sum + g
+            let id = "INV-" + (invoices.length + 1)
+            invoices.push({
+                id,
+                client: invClient.value,
+                total
+            })
+            localStorage.setItem("invoices", JSON.stringify(invoices))
+            items = []
+            renderItems()
+            loadInvoices()
+            alert("Invoice Saved")
+        }
+
+        // RECORDS & SEARCH
+        function loadInvoices() {
+            invoiceTable.innerHTML = ""
+            invoices.forEach((v, i) => {
+                invoiceTable.innerHTML += `<tr>
+        <td>${v.id}</td><td>${v.client}</td><td>₹${v.total}</td>
+        <td><button class="secondary" onclick="printInvoice(${i})">Print</button>
+        <button class="delete" onclick="delInvoice(${i})">Delete</button></td></tr>`
+            })
+        }
+
+        function delInvoice(i) {
+            invoices.splice(i, 1)
+            localStorage.setItem("invoices", JSON.stringify(invoices))
+            loadInvoices()
+        }
+
+        function printInvoice(i) {
+            let inv = invoices[i]
+            let w = window.open("")
+            w.document.write(`<h2>Invoice ${inv.id}</h2><p>Client: ${inv.client}</p><p>Amount: ₹${inv.total}</p>`)
+            w.print()
+        }
+
+        function search(t) {
+            invoiceTable.innerHTML = ""
+            invoices.filter(v => v.client.toLowerCase().includes(t.toLowerCase()))
+                .forEach(v => {
+                    invoiceTable.innerHTML += `<tr>
+        <td>${v.id}</td><td>${v.client}</td><td>₹${v.total}</td><td></td></tr>`
+                })
+        }
+
+        // DASHBOARD
+        function loadAll() {
+            loadClients()
+            loadInvoices()
+            dc.innerText = clients.length
+            di.innerText = invoices.length
+            dr.innerText = invoices.reduce((a, b) => a + b.total, 0)
+        }
+
+        loadAll()
+    </script>
+
+</body>
+
+</html>
